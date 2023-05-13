@@ -1,0 +1,36 @@
+name: AutoCI
+on:
+  push:  # 指定触发事件
+    branches:
+      - main  # 指定触发 action 的分支
+
+jobs:
+  main:
+    runs-on: ubuntu-latest
+    steps:
+
+    # 拉取github仓库代码
+    - name: Checkout
+      uses: actions/checkout@v2
+      with:
+        persist-credentials: false
+
+    # 执行依赖安装
+    - name: 安装依赖
+      run: |
+          npm install
+        
+    # 执行构建步骤
+    - name: 构建
+      run: |
+          npm run build
+    # 执行部署
+    - name: 部署
+      uses: easingthemes/ssh-deploy@v2.1.5
+      with:
+        SSH_PRIVATE_KEY: ${{ secrets.SERVER_SSH_KEY }} # 指定密钥，key即密钥名称
+        ARGS: '-rltgoDzvO --delete'
+        SOURCE: dist # 注意这是npm run build生成的文件，要复制到阿里云静态服务器的文件夹名称
+        REMOTE_HOST: ${{ secrets.SERVER_HOST }} # 你的阿里云公网地址
+        REMOTE_USER: ${{ secrets.SERVER_USER }}  # 阿里云登录后默认为 root 用户，并且所在文件夹为 root
+        TARGET: /usr/share/nginx/packages # 打包后的 build 文件夹将放在 /usr/share/nginx/packages
